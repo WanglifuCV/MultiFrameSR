@@ -1,0 +1,44 @@
+close all; clc; clear;
+addpath(genpath('utils'));
+
+%读入原始图像
+[filename, pathname] = uigetfile('*.tif;*.jpg;*.bmp', '选原始图像');
+fn=[pathname filename];
+I0=(imread(fn));
+if(size(I0, 3) > 1)
+    I0 = rgb2gray(I0);
+end
+
+%读入比较图像
+[filename, pathname] = uigetfile('*.tif;*.jpg;*.bmp', '选比较图像');
+fnp=[pathname filename];
+I1=imread(fnp);
+if(size(I1, 3) > 1)
+    I1 = rgb2gray(I1);
+end
+
+I0 = double(I0);
+I1 = double(I1);
+
+% Load flow estimation method
+ope           = hs_optical_flow;
+% ope.display   = false;        % uncomment to avoid printing information
+ope.solver    = 'pcg'; 
+
+ope.images  = cat(length(size(I0))+1, I0, I1);
+
+% Estimate flow fields
+uv  = compute_flow(ope, zeros([size(I0,1) size(I0,2) 2]));
+
+% Display estimated flow fields
+figure; 
+field = uint8(flowToColor(uv));
+imshow(field);
+imwrite(field, 'motionField.png');
+
+figure;
+ratio = 9;
+uv2 = uv(1:ratio:end,1:ratio:end,:);
+[x,y] = meshgrid(1:size(uv2,2),size(uv2,1):-1:1);
+quiver(x,y,uv2(:,:,1),uv2(:,:,2))
+axis equal

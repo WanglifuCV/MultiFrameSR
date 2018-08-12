@@ -1,0 +1,59 @@
+close all; clc; clear;
+
+%% Read image
+[ fName dirpath ] = uigetfile( '*.*' );
+Y = im2double(imread([ dirpath fName ]));
+if(size(Y,3) > 1)
+    Y = rgb2ycbcr(Y);
+    I = Y(:,:,1);
+end
+% I = imresize(I,1/3);
+figure; imshow(ycbcr2rgb(Y)); title('Original')
+
+%% Blur 
+% % Gaussian kernel
+% sigma = 0.5;
+% sz = ceil(sigma * 3) * 2 + 1;
+% kernel = fspecial('gaussian', sz, sigma);
+
+% Box kernel
+sz = 3;
+kernel = fspecial('average', sz);
+% kernel = fspecial('gaussian', 5, 1);
+% Ib = imfilter(I, kernel, 'symmetric');
+% figure; imshow(Ib); title('Blured');
+Ib = I;
+if size(Y,3) > 1
+    Ib(:,:,2:3) = Y(:,:,2:3);
+    Ib = ycbcr2rgb(Ib);
+end
+figure; imshow(Ib); title('Blured');
+
+%% Deblur
+kernel = fliplr(flipud(kernel));
+[sdI2]=deconvSps(I,kernel,0.015,200);
+% [sdI2]=deconvSps(I,kernel,0.1,200); %%for text
+if size(Y,3) > 1
+    sdI = Y;
+    sdI(:,:,1) = sdI2;
+    sdI = ycbcr2rgb(sdI);
+end
+figure, imshow(sdI2), title('sparse deconv (smoothness weight:0.023)');
+imwrite(sdI2, 'sparse_deconv.tif');
+drawnow
+% 2 for text
+% 5 for plate
+% 2 for natural image
+ldI = deconvlucy(Ib,kernel,5);
+eW = 10;
+ldI2 = sdI2;
+ldI2(eW:end-eW+1,eW:end-eW+1,1) = ldI(eW:end-eW+1,eW:end-eW+1,1);
+% ldI2 = ldI;
+% if size(Y,3) > 1
+%     ldI2(:,:,2:3) = Y(:,:,2:3);
+%     ldI2 = ycbcr2rgb(ldI2);
+% end
+
+figure;imshow(ldI2);title('RLÈ¥Ä£ºý');
+
+imwrite(ldI2, 'RL_deconv.tif');

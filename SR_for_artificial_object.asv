@@ -1,0 +1,56 @@
+clear; clc; close all;
+addpath('BM3D');
+
+isDisp = 1;
+
+% aquire data
+sequenceFile = 'data\test\LRPlatetestseq.mat';
+% sequenceFile = 'data\test\LRTextseq.mat';
+% sequenceFile = 'data\test\LRSuzietestseq.mat';
+% sequenceFile = 'data\test\LRSuzieseq.mat';
+% sequenceFile = 'data\test\LRFormanseq.mat';
+[p, f, x] = fileparts(sequenceFile);
+output_dir = ['result\' f '\']; 
+[success, message] = mkdir(output_dir);  %#ok<NASGU>
+
+%% parameter setting
+refNum = 5;   % 参考帧号
+NumOfFrame = 9; % 指定总共要截取视频序列帧数
+
+% parameters
+ratio = 3;  % 放大倍数
+sample_org = 2; % 采用原点
+
+D = 1;
+M = (2*D+1)^2;
+
+iterate = 3;
+window_sz = 15; % inintial window size for antialiasing filter
+sigma_blur = 1.35;  % inintial sigma for antialiasing filter
+alpha = 0.5; % decay factor for sigma of antialiasing filter
+sigma_noise = 25; % initail sigma for non-local filter
+beta = 0.3; % decay factor for sigma of non-local filter
+sigma_similar = 0.01;    % 计算块匹配相似性权重的归一化系数
+sigma_similar = 2 * sigma_similar^2;
+
+
+%% prepare for reconstruction
+[LRimage refNum] = AquireSequence(sequenceFile, refNum, NumOfFrame);
+[rowNum, colNum, T] = size(LRimage);
+rowNumSR = rowNum * ratio; colNumSR = colNum * ratio;
+
+Fm = zeros(2, M);
+Cm = zeros(2*D+1);
+k = 1;
+for dy = D:-1:-D
+    for dx = D:-1:-D
+        Fm(:,k) = [dx; dy];
+        Cm(dx + (D+1), dy + (D+1)) = k;
+        k = k+1;
+    end
+end
+
+im_td = zeros(rowNum, colNum, T); % save the the results of translated and decimated SR 
+LRimage_blur = zeros(rowNum, colNum, T); % save the antialiased observation 
+
+

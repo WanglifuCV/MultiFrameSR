@@ -1,0 +1,65 @@
+function [Motion Probability] = RegisterForAFrame(frame, refFrame_td, map_corner, sigma_s, w_sz, D, Fm, Cm)
+% Register
+M = (2*D+1)^2;
+[rowNum, colNum] = size(frame);
+Weight = zeros(rowNum, colNum, M);
+sigma_s = sigma_s * w_sz^2;
+w_avr = ones(w_sz);
+
+for m = 1:M
+    Diff = (frame - refFrame_td(:,:,m)).^2;
+    Weight(:,:,m) = imfilter(Diff, w_avr, 'replicate', 'same');
+    Weight(:,:,m) = exp(-Weight(:,:,m) / sigma_s);
+end
+
+[Probability Idx] = max(Weight, [], 3);
+temp = Fm(:,Idx);
+Motion = reshape(temp', rowNum, colNum, 2);
+Probability = Probability .* map_corner;
+
+%--------for test-----------
+Mo = zeros(rowNum, colNum);
+for i = 1:rowNum
+    for j=1:colNum
+        Mo(i,j) = Cm(Motion(i,j,1) + (D+1), Motion(i,j,2) + (D+1))/M;
+    end
+end
+figure; imshow(Mo);
+%---------------------------
+
+
+% method 1
+reliability = Probability > 0.5;
+
+% %----------for test-----------
+% KK = zeros(size(reliability));
+% KK(reliability) = Mo(reliability);
+% figure; imshow(KK);
+% %-----------------------------
+
+Motion = round(MultiCueFilter(frame, reliability, Motion));
+
+
+% % --------for test-----------
+% Mo = zeros(rowNum, colNum);
+% for i = 1:rowNum
+%     for j=1:colNum
+%         Mo(i,j) = Cm(Motion(i,j,1) + (D+1), Motion(i,j,2) + (D+1))/M;
+%     end
+% end
+% figure; imshow(Mo);
+% % ---------------------------
+
+
+
+% method 2
+% Motion = round(MultiCueFilter2(frame, Probability, Motion));
+
+for i = 1:rowNum
+    for j=1:colNum
+        n = Cm(Motion(i,j,1) + (D+1), Motion(i,j,2) + (D+1));
+        Probability(i,j) = Weight(i,j,n);
+    end
+end
+
+

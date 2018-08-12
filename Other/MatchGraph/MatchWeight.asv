@@ -1,0 +1,49 @@
+clc; clear; close all;
+
+%读入原始图像
+[filename, pathname] = uigetfile('*.tif;*.jpg;*.bmp', '选原始图像');
+fn=[pathname filename];
+I0=double(imread(fn));
+if(size(I0, 3) > 1)
+    I0 = rgb2gray(I0);
+end
+
+%读入比较图像
+[filename, pathname] = uigetfile('*.tif;*.jpg;*.bmp', '选比较图像');
+fnp=[pathname filename];
+I1=double(imread(fnp));
+if(size(I1, 3) > 1)
+    I1 = rgb2gray(I1);
+end
+
+diff = (I0-I1).^2;
+sigma = 2.2*5^2;
+diff = exp(-diff/sigma^2);
+% figure; imshow(diff,[]);
+% figure; surf(diff);
+[x, y] = meshgrid(1:size(diff,2), size(diff,1):-1:1);
+
+figure; pcolor(x,y,diff);
+colormap(HS);
+shading interp
+colorbar;
+
+% [dx dy] = gradient(I0);
+% g = dx.^2 + dy.^2;
+% figure; imshow(g,[]);
+% 
+% figure; pcolor(x,y,g);
+% shading interp
+% colorbar;
+
+% [x,y]=meshgrid(-2:0.1:2);
+% z=3*(1-x).^2.*exp(-(x.^2) - (y+1).^2) - 10*(x/5 - x.^3 - y.^5).*exp(-x.^2-y.^2)   - 1/3*exp(-(x+1).^2 - y.^2);
+% subplot(1,2,1)
+% pcolor(x,y,z);
+% shading interp
+% hold on
+% plot(rand(8,2)*4-2,'b.')
+% subplot(1,2,2)
+% surf(x,y,z)
+% shading interp
+% colorbar
